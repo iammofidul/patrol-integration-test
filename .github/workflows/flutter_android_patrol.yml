@@ -39,18 +39,19 @@ jobs:
         run: |
           echo "Setting ANDROID_HOME"
           echo "export ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "export PATH=$PATH:$ANDROID_HOME/cmdline-tools/tools/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
+          echo "export PATH=$ANDROID_HOME/cmdline-tools/tools/bin:$ANDROID_HOME/platform-tools:$PATH" >> $GITHUB_ENV
         shell: bash
 
       # Step 5: Install Android SDK and Emulator
       - name: Setup Android SDK and Emulator
         env:
-          PATH: ${{ env.PATH }}:/Users/runner/android-sdk/cmdline-tools/tools/bin:/Users/runner/android-sdk/platform-tools
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          PATH: ${{ env.PATH }}
         run: |
           echo "Installing Android SDK tools"
-          yes | sdkmanager --install "platform-tools" "platforms;android-33" "build-tools;33.0.0"
+          sdkmanager --install "platform-tools" "platforms;android-33" "build-tools;33.0.0" --verbose
           echo "Installing Android Emulator"
-          yes | sdkmanager --install "emulator" "system-images;android-33;google_apis;x86_64"
+          sdkmanager --install "emulator" "system-images;android-33;google_apis;x86_64" --verbose
         shell: bash
 
       # Step 6: Create and Start Emulator
