@@ -23,104 +23,42 @@ jobs:
           channel: 'stable'
           cache: true
 
-      # Step 3: Install Android Command-Line Tools
-      - name: Install Android Command-Line Tools
-        run: |
-          echo "Downloading Android Command-Line Tools"
-          mkdir -p "$HOME/android-sdk/cmdline-tools"
-          curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-mac-9477386_latest.zip
-          unzip -q sdk-tools.zip -d "$HOME/android-sdk/cmdline-tools"
-          mv "$HOME/android-sdk/cmdline-tools/cmdline-tools" "$HOME/android-sdk/cmdline-tools/tools"
-          rm sdk-tools.zip
-        shell: bash
+      # Step 3: Setup Android Emulator
+      - name: Setup Android Emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          profile: Nexus 6
+          script: |
+            echo "Android Emulator is ready."
+            flutter doctor
+            flutter pub get
+            flutter test
 
-      # Step 4: Set Environment Variables
-      - name: Set Environment Variables
+      # Step 4: Check ADB Devices
+      - name: Check ADB Devices
         run: |
-          echo "Setting ANDROID_HOME and PATH"
-          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "PATH=$HOME/android-sdk/cmdline-tools/tools/bin:$HOME/android-sdk/platform-tools:$PATH" >> $GITHUB_ENV
-        shell: bash
-
-      # Step 5: Accept Android Licenses
-      - name: Accept Android Licenses
-        run: |
-          echo "Accepting Android Licenses"
-          yes | sdkmanager --licenses > /dev/null 2>&1 || true
-        shell: bash
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
-          PATH: ${{ env.PATH }}
-
-      # Step 6: Install Android SDK and Emulator
-      - name: Install Android SDK and Emulator
-        run: |
-          sdkmanager --update
-          sdkmanager --install "platform-tools" "platforms;android-33" "build-tools;33.0.0" "emulator" "system-images;android-33;google_apis;x86_64"
-        shell: bash
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
-          PATH: ${{ env.PATH }}
-
-      # Step 7: Install Emulator Dependencies
-      - name: Install Emulator Dependencies
-        run: |
-          echo "Installing Qt dependencies"
-          brew install qt
-        shell: bash
-
-      # Step 8: Clean Emulator Config
-      - name: Clean Emulator Config
-        run: |
-          rm -rf ~/.android/avd/test.avd
-          rm -rf ~/.android/avd/test.ini
-        shell: bash
-
-      # Step 9: Create Emulator
-      - name: Create Emulator
-        run: |
-          echo "Creating AVD"
-          echo "no" | avdmanager create avd -n test -k "system-images;android-33;google_apis;x86_64"
-        shell: bash
-
-      # Step 10: Start Emulator
-      - name: Start Emulator
-        run: |
-          nohup $ANDROID_HOME/emulator/emulator -avd test -no-window -no-audio -gpu off -accel off -memory 2048 &
-        shell: bash
-
-      # Step 11: Wait for Emulator to Boot
-      - name: Wait for Emulator to Boot
-        run: |
-          echo "Waiting for Android Emulator to boot..."
-          boot_timeout=240  # Timeout in seconds
+          echo "Checking if ADB devices are connected..."
+          timeout=30  # Timeout in seconds
           elapsed_time=0
-          while [[ -z "$(adb shell getprop sys.boot_completed | tr -d '\r')" ]] && [[ $elapsed_time -lt $boot_timeout ]]; do
+          while [[ -z "$(adb devices | grep 'device$')" ]] && [[ $elapsed_time -lt $timeout ]]; do
+            echo "Waiting for emulator to show up in ADB devices... $elapsed_time seconds elapsed."
             sleep 5
             elapsed_time=$((elapsed_time + 5))
-            echo "Waiting... $elapsed_time seconds elapsed."
           done
 
-          if [[ $elapsed_time -ge $boot_timeout ]]; then
-            echo "Emulator boot timed out after $boot_timeout seconds."
+          if [[ $elapsed_time -ge $timeout ]]; then
+            echo "ADB devices check timed out after $timeout seconds."
             adb devices
             exit 1
           else
-            echo "Emulator booted successfully."
+            echo "Emulator connected successfully in ADB devices."
           fi
         shell: bash
 
-      # Step 12: Get Flutter Dependencies
-      - name: Get Flutter Dependencies
-        run: flutter pub get
-        shell: bash
-
-      # Step 13: Run Flutter Unit Tests
-      - name: Run Flutter Unit Tests
-        run: flutter test
-        shell: bash
-
-      # Step 14: Run Patrol Integration Tests
+      # Step 5: Run Patrol Integration Tests
       - name: Run Patrol Tests
         run: |
           export PATH="$PATH":"$HOME/.pub-cache/bin"
