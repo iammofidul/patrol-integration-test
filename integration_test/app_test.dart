@@ -1,27 +1,25 @@
-import 'dart:io';
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patrol/patrol.dart';
+import 'package:patrol_integration_test/main.dart';
 
 void main() {
   patrolTest(
-    'counter state is the same after going to home and switching apps',
+    'Test Login and Notification Permission',
         ($) async {
-      // Replace later with your app's main widget
       await $.pumpWidgetAndSettle(
-        MaterialApp(
-          home: Scaffold(
-            appBar: AppBar(title: const Text('app')),
-            backgroundColor: Colors.blue,
-          ),
-        ),
+          const MyApp()
       );
-
-      expect($('app'), findsOneWidget);
-      if (!Platform.isMacOS) {
-        await $.native.pressHome();
+      expect(find.byType(MyApp), findsOneWidget);
+      await $(#email).enterText("email@example.com");
+      await $(#password).enterText("password");
+      await $(#login).tap();
+      await $('Notification Permission').waitUntilVisible();
+      await $(#btnAllowNotification).tap();
+      if(await $.native.isPermissionDialogVisible()){
+        await $.native.grantPermissionWhenInUse();
       }
+      await $('Notification permission granted!').waitUntilVisible();
+      await Future.delayed(const Duration(seconds: 5));
     },
   );
 }
