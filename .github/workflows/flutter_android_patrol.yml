@@ -64,18 +64,50 @@ jobs:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           PATH: ${{ env.PATH }}
 
+      # Debug: List Installed System Images
+      - name: Debug Installed System Images
+        run: sdkmanager --list
+        shell: bash
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          PATH: ${{ env.PATH }}
+
       # Step 7: Create and Start Emulator
       - name: Create and Start Emulator
         run: |
           echo "Creating AVD"
           echo "no" | avdmanager create avd -n test -k "system-images;android-33;google_apis;x86_64"
           echo "Starting Emulator"
-          nohup emulator -avd test -no-window -no-audio -no-snapshot -gpu swiftshader &
+          nohup emulator -avd test -no-window -no-audio -no-snapshot -gpu swiftshader_indirect -memory 2048 &
         shell: bash
 
       # Step 8: Wait for Emulator to Boot
       - name: Wait for Emulator to Boot
-        run: adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
+        run: |
+          echo "Waiting for Android Emulator to boot..."
+          boot_timeout=240  # Timeout in seconds
+          elapsed_time=0
+          while [[ -z "$(adb shell getprop sys.boot_completed | tr -d '\r')" ]] && [[ $elapsed_time -lt $boot_timeout ]]; do
+            sleep 5
+            elapsed_time=$((elapsed_time + 5))
+            echo "Waiting... $elapsed_time seconds elapsed."
+          done
+
+          if [[ $elapsed_time -ge $boot_timeout ]]; then
+            echo "Emulator boot timed out after $boot_timeout seconds."
+            adb devices
+            exit 1
+          else
+            echo "Emulator booted successfully."
+          fi
+        shell: bash
+
+      # Debug: Emulator Logs
+      - name: Debug Emulator Logs
+        run: |
+          echo "Fetching Emulator Logs"
+          adb logcat -d > emulator-log.txt
+          echo "Logs saved to emulator-log.txt"
         shell: bash
 
       # Step 9: Install Patrol CLI
