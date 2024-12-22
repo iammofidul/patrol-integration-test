@@ -1,0 +1,56 @@
+name: Flutter Android with Patrol Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      # Step 1: Checkout the code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Setup Flutter
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+
+      # Step 3: Install Patrol CLI
+      - name: Install Patrol CLI
+        run: dart pub global activate patrol_cli
+
+      # Step 4: Get Flutter dependencies
+      - name: Flutter Pub Get
+        run: flutter pub get
+
+      # Step 5: Setup Android SDK & Emulator
+      - name: Setup Android SDK and Emulator
+        run: |
+          echo "Installing Android SDK tools"
+          yes | sdkmanager --install "platform-tools" "platforms;android-33" "build-tools;33.0.0"
+          echo "Installing Android Emulator"
+          yes | sdkmanager --install "emulator" "system-images;android-33;google_apis;x86_64"
+
+      # Step 6: Create and Start Android Emulator
+      - name: Create and Start Emulator
+        run: |
+          echo "Creating AVD"
+          echo "no" | avdmanager create avd -n test -k "system-images;android-33;google_apis;x86_64"
+          echo "Starting Emulator"
+          nohup emulator -avd test -no-window -no-audio -no-snapshot -gpu swiftshader &
+
+      # Step 7: Wait for Emulator to Boot
+      - name: Wait for Emulator to Boot
+        run: adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
+
+      # Step 8: Run Patrol Test
+      - name: Run Patrol Tests
+        run: |
+          export PATH="$PATH":"$HOME/.pub-cache/bin"
+          patrol test -t integration_test/app_test.dart --target-platform android
