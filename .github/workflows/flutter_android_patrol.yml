@@ -1,4 +1,4 @@
-name: Flutter Android with Patrol Tests
+name: Flutter CI
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Setup Flutter
+      # Step 2: Setup Flutter (specific version with caching)
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -43,7 +43,7 @@ jobs:
         shell: bash
 
       # Step 5: Install Android SDK and Emulator
-      - name: Setup Android SDK and Emulator
+      - name: Install Android SDK and Emulator
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           PATH: ${{ env.PATH }}
@@ -68,7 +68,22 @@ jobs:
         run: adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
         shell: bash
 
-      # Step 8: Run Patrol Test
+      # Step 8: Install Patrol CLI
+      - name: Install Patrol CLI
+        run: dart pub global activate patrol_cli
+        shell: bash
+
+      # Step 9: Get Flutter Dependencies
+      - name: Get Flutter Dependencies
+        run: flutter pub get
+        shell: bash
+
+      # Step 10: Run Flutter Unit Tests
+      - name: Run Flutter Unit Tests
+        run: flutter test
+        shell: bash
+
+      # Step 11: Run Patrol Integration Tests
       - name: Run Patrol Tests
         run: |
           export PATH="$PATH":"$HOME/.pub-cache/bin"
