@@ -15,7 +15,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Setup Flutter (specific version with caching)
+      # Step 2: Setup Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -42,7 +42,17 @@ jobs:
           echo "PATH=$HOME/android-sdk/cmdline-tools/tools/bin:$HOME/android-sdk/platform-tools:$PATH" >> $GITHUB_ENV
         shell: bash
 
-      # Step 5: Install Android SDK and Emulator
+      # Step 5: Accept Android Licenses
+      - name: Accept Android Licenses
+        run: |
+          echo "Accepting Android Licenses"
+          yes | sdkmanager --licenses
+        shell: bash
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          PATH: ${{ env.PATH }}
+
+      # Step 6: Install Android SDK and Emulator
       - name: Install Android SDK and Emulator
         run: |
           echo "Installing Android SDK tools"
@@ -54,7 +64,7 @@ jobs:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           PATH: ${{ env.PATH }}
 
-      # Step 6: Create and Start Emulator
+      # Step 7: Create and Start Emulator
       - name: Create and Start Emulator
         run: |
           echo "Creating AVD"
@@ -63,27 +73,27 @@ jobs:
           nohup emulator -avd test -no-window -no-audio -no-snapshot -gpu swiftshader &
         shell: bash
 
-      # Step 7: Wait for Emulator to Boot
+      # Step 8: Wait for Emulator to Boot
       - name: Wait for Emulator to Boot
         run: adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
         shell: bash
 
-      # Step 8: Install Patrol CLI
+      # Step 9: Install Patrol CLI
       - name: Install Patrol CLI
         run: dart pub global activate patrol_cli
         shell: bash
 
-      # Step 9: Get Flutter Dependencies
+      # Step 10: Get Flutter Dependencies
       - name: Get Flutter Dependencies
         run: flutter pub get
         shell: bash
 
-      # Step 10: Run Flutter Unit Tests
+      # Step 11: Run Flutter Unit Tests
       - name: Run Flutter Unit Tests
         run: flutter test
         shell: bash
 
-      # Step 11: Run Patrol Integration Tests
+      # Step 12: Run Patrol Integration Tests
       - name: Run Patrol Tests
         run: |
           export PATH="$PATH":"$HOME/.pub-cache/bin"
