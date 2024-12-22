@@ -1,4 +1,4 @@
-name: Flutter CI
+name: Flutter CI with Android Emulator
 
 on:
   push:
@@ -37,22 +37,22 @@ jobs:
       # Step 4: Set Environment Variables
       - name: Set Environment Variables
         run: |
-          echo "Setting ANDROID_HOME"
-          echo "export ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "export PATH=$ANDROID_HOME/cmdline-tools/tools/bin:$ANDROID_HOME/platform-tools:$PATH" >> $GITHUB_ENV
+          echo "Setting ANDROID_HOME and PATH"
+          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "PATH=$HOME/android-sdk/cmdline-tools/tools/bin:$HOME/android-sdk/platform-tools:$PATH" >> $GITHUB_ENV
         shell: bash
 
       # Step 5: Install Android SDK and Emulator
       - name: Install Android SDK and Emulator
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
-          PATH: ${{ env.PATH }}
         run: |
           echo "Installing Android SDK tools"
           sdkmanager --install "platform-tools" "platforms;android-33" "build-tools;33.0.0" --verbose
           echo "Installing Android Emulator"
           sdkmanager --install "emulator" "system-images;android-33;google_apis;x86_64" --verbose
         shell: bash
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          PATH: ${{ env.PATH }}
 
       # Step 6: Create and Start Emulator
       - name: Create and Start Emulator
