@@ -64,15 +64,14 @@ jobs:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           PATH: ${{ env.PATH }}
 
-      # Debug: List Installed System Images
-      - name: Debug Installed System Images
-        run: sdkmanager --list
+      # Step 7: Setup Emulator Command Workaround
+      - name: Setup Emulator Workaround
+        run: |
+          echo 'function emulator { cd "$(dirname "$(which emulator)")" && ./emulator "$@"; }' >> ~/.bashrc
+          source ~/.bashrc
         shell: bash
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
-          PATH: ${{ env.PATH }}
 
-      # Step 7: Create and Start Emulator
+      # Step 8: Create and Start Emulator
       - name: Create and Start Emulator
         run: |
           echo "Creating AVD"
@@ -81,7 +80,7 @@ jobs:
           nohup emulator -avd test -no-window -no-audio -no-snapshot -gpu swiftshader_indirect -memory 2048 &
         shell: bash
 
-      # Step 8: Wait for Emulator to Boot
+      # Step 9: Wait for Emulator to Boot
       - name: Wait for Emulator to Boot
         run: |
           echo "Waiting for Android Emulator to boot..."
@@ -102,30 +101,22 @@ jobs:
           fi
         shell: bash
 
-      # Debug: Emulator Logs
-      - name: Debug Emulator Logs
-        run: |
-          echo "Fetching Emulator Logs"
-          adb logcat -d > emulator-log.txt
-          echo "Logs saved to emulator-log.txt"
-        shell: bash
-
-      # Step 9: Install Patrol CLI
+      # Step 10: Install Patrol CLI
       - name: Install Patrol CLI
         run: dart pub global activate patrol_cli
         shell: bash
 
-      # Step 10: Get Flutter Dependencies
+      # Step 11: Get Flutter Dependencies
       - name: Get Flutter Dependencies
         run: flutter pub get
         shell: bash
 
-      # Step 11: Run Flutter Unit Tests
+      # Step 12: Run Flutter Unit Tests
       - name: Run Flutter Unit Tests
         run: flutter test
         shell: bash
 
-      # Step 12: Run Patrol Integration Tests
+      # Step 13: Run Patrol Integration Tests
       - name: Run Patrol Tests
         run: |
           export PATH="$PATH":"$HOME/.pub-cache/bin"
