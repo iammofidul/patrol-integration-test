@@ -15,23 +15,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Setup Flutter
+      # Step 2: Setup Flutter (specific version with caching)
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.5'
-          channel: "stable"
+          channel: 'stable'
           cache: true
 
-      # Step 3: Install Patrol CLI
-      - name: Install Patrol CLI
-        run: dart pub global activate patrol_cli
+      # Step 3: Install Android Command-Line Tools
+      - name: Install Android Command-Line Tools
+        run: |
+          echo "Downloading Android Command-Line Tools"
+          mkdir -p "$HOME/android-sdk/cmdline-tools"
+          curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-mac-9477386_latest.zip
+          unzip -q sdk-tools.zip -d "$HOME/android-sdk/cmdline-tools"
+          mv "$HOME/android-sdk/cmdline-tools/cmdline-tools" "$HOME/android-sdk/cmdline-tools/tools"
+          rm sdk-tools.zip
+          echo "Setting ANDROID_HOME"
+          echo "export ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "export PATH=$PATH:$ANDROID_HOME/cmdline-tools/tools/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
+        shell: bash
 
-      # Step 4: Get Flutter dependencies
-      - name: Flutter Pub Get
-        run: flutter pub get
-
-      # Step 5: Setup Android SDK & Emulator
+      # Step 4: Install Android SDK and Emulator
       - name: Setup Android SDK and Emulator
         run: |
           echo "Installing Android SDK tools"
@@ -39,7 +45,7 @@ jobs:
           echo "Installing Android Emulator"
           yes | sdkmanager --install "emulator" "system-images;android-33;google_apis;x86_64"
 
-      # Step 6: Create and Start Android Emulator
+      # Step 5: Create and Start Emulator
       - name: Create and Start Emulator
         run: |
           echo "Creating AVD"
@@ -47,11 +53,11 @@ jobs:
           echo "Starting Emulator"
           nohup emulator -avd test -no-window -no-audio -no-snapshot -gpu swiftshader &
 
-      # Step 7: Wait for Emulator to Boot
+      # Step 6: Wait for Emulator to Boot
       - name: Wait for Emulator to Boot
         run: adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
 
-      # Step 8: Run Patrol Test
+      # Step 7: Run Patrol Test
       - name: Run Patrol Tests
         run: |
           export PATH="$PATH":"$HOME/.pub-cache/bin"
