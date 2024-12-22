@@ -15,7 +15,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Setup Flutter (specific version with caching)
+      # Step 2: Setup Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -32,33 +32,44 @@ jobs:
           unzip -q sdk-tools.zip -d "$HOME/android-sdk/cmdline-tools"
           mv "$HOME/android-sdk/cmdline-tools/cmdline-tools" "$HOME/android-sdk/cmdline-tools/tools"
           rm sdk-tools.zip
+        shell: bash
+
+      # Step 4: Set Environment Variables
+      - name: Set Environment Variables
+        run: |
           echo "Setting ANDROID_HOME"
           echo "export ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
           echo "export PATH=$PATH:$ANDROID_HOME/cmdline-tools/tools/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
         shell: bash
 
-      # Step 4: Install Android SDK and Emulator
+      # Step 5: Install Android SDK and Emulator
       - name: Setup Android SDK and Emulator
+        env:
+          PATH: ${{ env.PATH }}:/Users/runner/android-sdk/cmdline-tools/tools/bin:/Users/runner/android-sdk/platform-tools
         run: |
           echo "Installing Android SDK tools"
           yes | sdkmanager --install "platform-tools" "platforms;android-33" "build-tools;33.0.0"
           echo "Installing Android Emulator"
           yes | sdkmanager --install "emulator" "system-images;android-33;google_apis;x86_64"
+        shell: bash
 
-      # Step 5: Create and Start Emulator
+      # Step 6: Create and Start Emulator
       - name: Create and Start Emulator
         run: |
           echo "Creating AVD"
           echo "no" | avdmanager create avd -n test -k "system-images;android-33;google_apis;x86_64"
           echo "Starting Emulator"
           nohup emulator -avd test -no-window -no-audio -no-snapshot -gpu swiftshader &
+        shell: bash
 
-      # Step 6: Wait for Emulator to Boot
+      # Step 7: Wait for Emulator to Boot
       - name: Wait for Emulator to Boot
         run: adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
+        shell: bash
 
-      # Step 7: Run Patrol Test
+      # Step 8: Run Patrol Test
       - name: Run Patrol Tests
         run: |
           export PATH="$PATH":"$HOME/.pub-cache/bin"
           patrol test -t integration_test/app_test.dart --target-platform android
+        shell: bash
