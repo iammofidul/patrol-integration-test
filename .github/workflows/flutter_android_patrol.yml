@@ -46,7 +46,7 @@ jobs:
       - name: Accept Android Licenses
         run: |
           echo "Accepting Android Licenses"
-          yes | sdkmanager --licenses
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
         shell: bash
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
